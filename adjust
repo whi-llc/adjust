@@ -1,0 +1,163 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2020 WHI LLC
+#
+# adjust: Adjust clock models for VLBI data correlation.
+# (see http://github.com/whi-llc/adjust).
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+import os
+import sys
+import getopt
+import re
+import numpy as np
+import time
+import math
+import warnings
+import io
+import pandas as pd
+
+if len(sys.argv)==1:
+    sys.exit('try '+sys.argv[0]+' -h')
+
+try:
+    options, remainder = getopt.getopt(
+    sys.argv[1:],
+    'fhvx:')
+
+except getopt.GetoptError as err:
+    print('ERROR:', err)
+    sys.exit(1)
+
+if len(remainder) > 1:
+    print('ERROR: only one file argument allowed.')
+    sys.exit(1)
+
+ft_sub_8 = False
+exclude = []
+peculiar_version='v6_2017/11/24'
+s=u'''
+   Bd       8    217.285   0.009
+   Ft      14      0.231   0.010
+   Ho-(M4)  3      0.377   0.057
+   Ht      21      2.929   0.023
+   Is      19      0.506   0.012
+   Ke      16      1.997   0.020
+   Kk      18      0.469   0.015
+   Ma      11      0.643   0.012
+   Mc       2      2.171   0.040
+   Ny      16      2.080   0.097
+   On       4      1.873   0.022
+   Sh       7      9.986   0.013
+   Sv       5    217.461   0.008
+   Wn      11      2.332   0.008
+   Ww       8      1.983   0.022
+   Wz      22      2.630   0.000
+   Yg      24      2.257   0.029
+   Zc       7    217.049   0.009
+'''
+for opt,arg in options:
+    if opt == '-h':
+        print 'Usage: '+sys.argv[0]+' -fhvx: file'
+        print '  finds delta to apply to correlator clocks'
+        print '     file:'
+        print '         one line per station (four fields, blank delimited):'
+        print '               station'
+        print '               fmout-gps'
+        print '               Used'
+        print '               rate'
+        print '               comment'
+        print '     output:'
+        print '         one line per station:'
+        print '               station'
+        print '               offset'
+        print '               "x" excluded or " " included'
+        print '               station\'s historical noise level'
+        print '               number of data point in history'
+        print '        one line: peculiar offsets version'
+        print '        one summary line:'
+        print '               number of stations included'
+        print '               total number of stations'
+        print '               average offset'
+        print '               number included'
+        print '               RMS'
+        print ' '
+        print 'Options:'
+        print ' -f   sub 8 us from Ft for 512 Mbps'
+        print ' -h   this text'
+        print ' -x stations to exclude'
+        print '    list of two letter codes, colon separated, case sensitive'
+        sys.exit(0)
+    elif opt == '-f':
+        ft_sub_8 = True
+    elif opt == '-v':
+        sys.exit('[Version 0.5]')
+    elif opt == '-x':
+        exclude=arg.split(':')
+
+
+df=pd.read_table(io.StringIO(s),sep='\s+',index_col=0,names=['Station','n','offset','rms'])
+#
+if not remainder:
+    print 'enter table'
+    indf=pd.read_table(sys.stdin,sep='\s+',index_col=0,names=['Station','gps','used','rate','comments','x1'])
+    print 'Input from stdin'
+else:
+    indf=pd.read_table(remainder[0],sep='\s+',index_col=0,names=['Station','gps','used','rate'])
+#    indf=pd.read_table(remainder[0],sep='\s+',index_col=0,names=['Station','gps','used','rate','comments'])
+    print 'Input File '+remainder[0] 
+#
+if ft_sub_8:
+    df['offset']['Ft']=df['offset']['Ft']-8
+    print ' -8us added to historical value for Ft'
+#
+diff={}
+use=np.array([])
+print 'Station    Add          RMS  count'
+list=list(indf.index)
+for index in list:
+    try:
+        gps=float(indf['gps'][index])
+        try:
+            used=float(indf['used'][index])
+        except:
+            print '{:<7}'.format(index)
+            continue
+    except:
+        continue
+    if gps == 0:
+        print '{:<7}'.format(index)
+        continue
+    pec=used-gps
+    try:
+        diff[index]=df['offset'][index]-pec
+    except KeyError:
+        print '{:<7}'.format(index)
+        continue
+    print '{:<7}'.format(index),
+    print '{:7.4f}'.format(diff[index]),
+    if index in exclude:
+        no='x'
+    else:
+        use=np.append(use,diff[index])
+        no=' '
+    print '{:.1}'.format(no),
+    print ' ','{:7.4f}'.format(df['rms'][index]),
+    print ' ','{:3.0f}'.format(df['n'][index])
+print 'Add=amount to add, usecs, to Used to agree with historical peculiar offsets'
+print 'historical peculiar offsets:',peculiar_version
+print '{:d}/{:d}'.format(len(use),len(diff.keys())),
+print '   mean ','{:7.4f}'.format(np.mean(use)),
+print '   std ','{:7.4f}'.format(np.std(use))
