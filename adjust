@@ -123,7 +123,6 @@ if ft_sub_8:
 #
 diff={}
 use=np.array([])
-print 'Station    Add          RMS  count'
 list=list(indf.index)
 for index in list:
     try:
@@ -131,12 +130,43 @@ for index in list:
         try:
             used=float(indf['used'][index])
         except:
-            print '{:<7}'.format(index)
+            print '{:<7}'.format(index)," Can't decode Used"
+            continue
+    except:
+        print '{:<7}'.format(index)," Can't decode fmout"
+        continue
+    if used == 0:
+        print '{:<7}'.format(index)," Used value is zero"
+        continue
+    if gps == 0:
+        print '{:<7}'.format(index)," fmout value is zero"
+        continue
+    pec=used-gps
+    try:
+        diff[index]=df['offset'][index]-pec
+    except KeyError:
+        print '{:<7}'.format(index), "No peculiar offset"
+        continue
+    if index in exclude:
+        continue
+    else:
+        use=np.append(use,diff[index])
+avg=np.mean(use)
+rms=np.std(use)
+print 'Station Peculiar  Diff  X Residual   NR     NRH  Historical    RMS  count'
+#
+for index in list:
+    try:
+        gps=float(indf['gps'][index])
+        try:
+            used=float(indf['used'][index])
+        except:
             continue
     except:
         continue
+    if used == 0:
+        continue
     if gps == 0:
-        print '{:<7}'.format(index)
         continue
     pec=used-gps
     try:
@@ -145,17 +175,22 @@ for index in list:
         print '{:<7}'.format(index)
         continue
     print '{:<7}'.format(index),
+    print '{:7.4f}'.format(pec),
     print '{:7.4f}'.format(diff[index]),
     if index in exclude:
         no='x'
     else:
-        use=np.append(use,diff[index])
         no=' '
     print '{:.1}'.format(no),
+    print '{:7.4f}'.format(diff[index]-avg),
+    print ' ','{:4.1f}'.format((diff[index]-avg)/rms),
+    print ' ','{:4.1f}'.format((diff[index]-avg)/df['rms'][index]),
+    print ' ','{:7.4f}'.format(df['offset'][index]),
     print ' ','{:7.4f}'.format(df['rms'][index]),
     print ' ','{:3.0f}'.format(df['n'][index])
-print 'Add=amount to add, usecs, to Used to agree with historical peculiar offsets'
-print 'historical peculiar offsets:',peculiar_version
+print 'Diff: amount to add to Used to agree with historical peculiar offsets'
+print 'X: deleted flag, Residual: Diff-Diff_mean, NR=Residual/std, NRH= Diff/RMS'
+print 'Historical peculiar offsets:',peculiar_version
 print '{:d}/{:d}'.format(len(use),len(diff.keys())),
-print '   mean ','{:7.4f}'.format(np.mean(use)),
-print '   std ','{:7.4f}'.format(np.std(use))
+print '   Diff_mean ','{:7.4f}'.format(avg),
+print '   std ','{:7.4f}'.format(rms)
