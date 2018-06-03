@@ -35,7 +35,7 @@ if len(sys.argv)==1:
 try:
     options, remainder = getopt.getopt(
     sys.argv[1:],
-    'fhvx:')
+    'afhvx:')
 
 except getopt.GetoptError as err:
     print('ERROR:', err)
@@ -45,6 +45,7 @@ if len(remainder) > 1:
     print('ERROR: only one file argument allowed.')
     sys.exit(1)
 
+adjusted = False
 ft_sub_8 = False
 exclude = []
 peculiar_version='v7_2018/04/08'
@@ -68,7 +69,7 @@ Zc  3   217.047 0.012
 '''
 for opt,arg in options:
     if opt == '-h':
-        print 'Usage: '+sys.argv[0]+' -fhvx: file'
+        print 'Usage: '+sys.argv[0]+' -afhvx: file'
         print '  finds delta to apply to correlator clocks'
         print '     file:'
         print '         one line per station (four fields, blank delimited):'
@@ -93,11 +94,14 @@ for opt,arg in options:
         print '               RMS'
         print ' '
         print 'Options:'
+        print ' -a   print adjusted peculiar offsets'
         print ' -f   sub 8 us from Ft for 512 Mbps'
         print ' -h   this text'
         print ' -x stations to exclude'
         print '    list of two letter codes, colon separated, case sensitive'
         sys.exit(0)
+    elif opt == '-a':
+        adjusted = True
     elif opt == '-f':
         ft_sub_8 = True
     elif opt == '-v':
@@ -153,7 +157,10 @@ for index in list:
         use=np.append(use,diff[index])
 avg=np.mean(use)
 rms=np.std(use)
-print 'Station Peculiar  Diff  X Residual   NR     NRH  Historical    RMS  count'
+if not adjusted:
+    print 'Station Peculiar   Diff  X Residual     NR     NRH  Historical     RMS  count'
+else:
+    print 'Station X Adjusted Input'
 #
 for index in list:
     try:
@@ -169,28 +176,40 @@ for index in list:
     if gps == 0:
         continue
     pec=used-gps
-    try:
-        diff[index]=df['offset'][index]-pec
-    except KeyError:
-        print '{:<7}'.format(index)
-        continue
-    print '{:<7}'.format(index),
-    print '{:7.4f}'.format(pec),
-    print '{:7.4f}'.format(diff[index]),
+# 
     if index in exclude:
         no='x'
+    elif adjusted:
+        no='i'
     else:
         no=' '
+    try:
+        df['offset'][index]
+    except KeyError:
+        if not adjusted:
+            continue
+        else:
+            no='n'
+#
+    print '{:<7}'.format(index),
+    if not adjusted:
+        print '{:8.4f}'.format(pec),
+        print '{:7.4f}'.format(diff[index]),
     print '{:.1}'.format(no),
-    print '{:7.4f}'.format(diff[index]-avg),
-    print ' ','{:4.1f}'.format((diff[index]-avg)/rms),
-    print ' ','{:4.1f}'.format((diff[index]-avg)/df['rms'][index]),
-    print ' ','{:7.4f}'.format(df['offset'][index]),
-    print ' ','{:7.4f}'.format(df['rms'][index]),
-    print ' ','{:3.0f}'.format(df['n'][index])
-print 'Diff: amount to add to Used to agree with historical peculiar offsets'
-print 'X: deleted flag, Residual: Diff-Diff_mean, NR=Residual/std, NRH= Diff/RMS'
-print 'Historical peculiar offsets:',peculiar_version
-print '{:d}/{:d}'.format(len(use),len(diff.keys())),
-print '   Diff_mean ','{:7.4f}'.format(avg),
-print '   std ','{:7.4f}'.format(rms)
+    if not adjusted:
+        print '{:7.4f}'.format(diff[index]-avg),
+        print ' ','{:5.1f}'.format((diff[index]-avg)/rms),
+        print ' ','{:5.1f}'.format((diff[index]-avg)/df['rms'][index]),
+        print ' ','{:8.4f}'.format(df['offset'][index]),
+        print ' ','{:7.4f}'.format(df['rms'][index]),
+        print ' ','{:3.0f}'.format(df['n'][index])
+    else:
+        print '{:8.4f}'.format(pec+avg),
+        print '{:<12}'.format(remainder[0])
+if not adjusted:
+    print 'Diff: amount to add to Used to agree with historical peculiar offsets'
+    print 'X: deleted flag, Residual: Diff-Diff_mean, NR=Residual/std, NRH= Diff/RMS'
+    print 'Historical peculiar offsets:',peculiar_version
+    print '{:d}/{:d}'.format(len(use),len(diff.keys())),
+    print '   Diff_mean ','{:7.4f}'.format(avg),
+    print '   std ','{:7.4f}'.format(rms)
