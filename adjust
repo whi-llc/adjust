@@ -48,7 +48,8 @@ if len(remainder) > 1:
 adjusted = False
 ft_sub_8 = False
 exclude = []
-peculiar_version='v7_2018/04/08'
+peculiar_version='v8_2018/06/06'
+#updated Ny and Wz with data r4836-r1843
 s=u'''
 Bd  4   217.277 0.006
 Ft  8   0.238   0.015
@@ -58,12 +59,12 @@ Is  9   0.507   0.012
 Ke  10  2.006   0.024
 Kk  8   0.459   0.012
 Ma  6   0.638   0.015
-Ny  10  2.159   0.028
+Ny  13  2.306   0.009
 On  5   1.866   0.024
 Sh  7   9.986   0.013
 Wn  6   2.330   0.009
 Ww  5   1.974   0.026
-Wz  12  2.630   0.000
+Wz  12  2.609   0.008
 Yg  13  2.278   0.021
 Zc  3   217.047 0.012
 '''
@@ -105,7 +106,7 @@ for opt,arg in options:
     elif opt == '-f':
         ft_sub_8 = True
     elif opt == '-v':
-        sys.exit('[Version 0.5]')
+        sys.exit('[Version 8.0]')
     elif opt == '-x':
         exclude=arg.split(':')
 
