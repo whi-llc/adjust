@@ -95,7 +95,7 @@ for opt,arg in options:
         print ' '
         print 'Options:'
         print ' -a   print adjusted peculiar offsets'
-        print ' -f   sub 8 us from Ft for 512 Mbps'
+        print ' -f   sub 8 us from Ft fmout for 512 Mbps'
         print ' -h   this text'
         print ' -x stations to exclude'
         print '    list of two letter codes, colon separated, case sensitive'
@@ -121,16 +121,17 @@ else:
 #    indf=pd.read_table(remainder[0],sep='\s+',index_col=0,names=['Station','gps','used','rate','comments'])
     print 'Input File '+remainder[0] 
 #
-if ft_sub_8:
-    df['offset']['Ft']=df['offset']['Ft']-8
-    print ' -8us added to historical value for Ft'
-#
 diff={}
 use=np.array([])
 list=list(indf.index)
 for index in list:
     try:
         gps=float(indf['gps'][index])
+        if index == 'Ft' and ft_sub_8:
+            indf['gps'][index]=indf['gps'][index]-8
+            gps=gps-8
+            print ' -8us added to fmout value for Ft'
+#
         try:
             used=float(indf['used'][index])
         except:
