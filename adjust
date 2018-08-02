@@ -29,6 +29,8 @@ import warnings
 import io
 import pandas as pd
 
+np.seterr(divide='ignore')
+
 if len(sys.argv)==1:
     sys.exit('try '+sys.argv[0]+' -h')
 
@@ -48,23 +50,28 @@ if len(remainder) > 1:
 adjusted = False
 ft_sub_8 = False
 exclude = []
-peculiar_version='v8_2018/06/06'
-#updated Ny and Wz with data r4836-r1843
+#
+#start
+#peculiar_version='v7_2018/04/08'
+#updated Ny with data r4836-r4845
+peculiar_version='v8.0_2018/06/24+HhHo'
+#
 s=u'''
 Bd  4   217.277 0.006
 Ft  8   0.238   0.015
-Ho  3   0.377   0.057
+Hh  1   2.6825  0.000
+Ho  1   2.1     0.000
 Ht  13  2.943   0.021
 Is  9   0.507   0.012
 Ke  10  2.006   0.024
 Kk  8   0.459   0.012
 Ma  6   0.638   0.015
-Ny  13  2.306   0.009
+Ny  21  2.308   0.010
 On  5   1.866   0.024
 Sh  7   9.986   0.013
 Wn  6   2.330   0.009
 Ww  5   1.974   0.026
-Wz  12  2.609   0.008
+Wz  12  2.630   0.000
 Yg  13  2.278   0.021
 Zc  3   217.047 0.012
 '''
@@ -106,7 +113,7 @@ for opt,arg in options:
     elif opt == '-f':
         ft_sub_8 = True
     elif opt == '-v':
-        sys.exit('[Version 8.0]')
+        sys.exit('[Version 8.02]')
     elif opt == '-x':
         exclude=arg.split(':')
 
@@ -151,7 +158,7 @@ for index in list:
     try:
         diff[index]=df['offset'][index]-pec
     except KeyError:
-        print '{:<7}'.format(index), "No peculiar offset"
+        print '{:<7}'.format(index), "No historical peculiar offset"
         continue
     if index in exclude:
         continue
