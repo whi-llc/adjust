@@ -114,7 +114,7 @@ for opt,arg in options:
     elif opt == '-f':
         ft_sub_8 = True
     elif opt == '-v':
-        sys.exit('[Version 8.04]')
+        sys.exit('[Version 8.05]')
     elif opt == '-x':
         exclude=arg.split(':')
     elif opt == '-z':
@@ -203,18 +203,18 @@ for index in list:
         else:
             no='n'
 #
-    print '{:<7}'.format(index),
+    print '{:<2}'.format(index),
     if not adjusted:
-        print '{:8.4f}'.format(pec),
+        print '{:13.4f}'.format(pec),
         print '{:7.4f}'.format(diff[index]),
     print '{:.1}'.format(no),
     if not adjusted:
         print '{:7.4f}'.format(diff[index]-avg),
-        print ' ','{:5.1f}'.format((diff[index]-avg)/rms),
-        print ' ','{:5.1f}'.format((diff[index]-avg)/df['rms'][index]),
-        print ' ','{:8.4f}'.format(df['offset'][index]),
-        print ' ','{:7.4f}'.format(df['rms'][index]),
-        print ' ','{:3.0f}'.format(df['n'][index])
+        print '{:7.1f}'.format((diff[index]-avg)/rms),
+        print '{:7.1f}'.format((diff[index]-avg)/df['rms'][index]),
+        print '{:10.4f}'.format(df['offset'][index]),
+        print '{:9.4f}'.format(df['rms'][index]),
+        print '{:5.0f}'.format(df['n'][index])
     else:
         if len(use) != 0:
             print '{:8.4f}'.format(pec+avg),
