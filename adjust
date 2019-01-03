@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/opt/python/libexec/bin/python
 #
 # Copyright (c) 2020 WHI LLC
 #
@@ -57,7 +57,7 @@ acc_zeros = False
 #updated Ny with data r4836-r4845
 peculiar_version='v8.0_2018/06/24'
 #
-s=u'''
+s='''
 Bd  4   217.277 0.006
 Ft  8   0.238   0.015
 Ho  3   0.377   0.057
@@ -77,44 +77,59 @@ Zc  3   217.047 0.012
 '''
 for opt,arg in options:
     if opt == '-h':
-        print 'Usage: '+sys.argv[0]+' -afhvx: file'
-        print '  finds delta to apply to correlator clocks'
-        print '     file:'
-        print '         one line per station (four fields, blank delimited):'
-        print '               station'
-        print '               fmout-gps'
-        print '               Used'
-        print '               rate'
-        print '               comment'
-        print '     output:'
-        print '         one line per station:'
-        print '               station'
-        print '               offset'
-        print '               "x" excluded or " " included'
-        print '               station\'s historical noise level'
-        print '               number of data point in history'
-        print '        one line: peculiar offsets version'
-        print '        one summary line:'
-        print '               number of stations included'
-        print '               total number of stations'
-        print '               average offset'
-        print '               number included'
-        print '               RMS'
-        print ' '
-        print 'Options:'
-        print ' -a   print adjusted peculiar offsets'
-        print ' -f   sub 8 us from Ft fmout for 512 Mbps'
-        print ' -h   this text'
-        print ' -x stations to exclude'
-        print '    list of two letter codes, colon separated, case sensitive'
-        print ' -z   accept zero values'
+        print('Usage: '+sys.argv[0]+' -afhvx: file')
+        print('  finds average offset to apply to correlator \'Used\' clocks')
+        print('  after finding average offset, use -a to print adjusted offsets')
+        print('     file:')
+        print('         one line per station (three fields minimum, blank delimited):')
+        print('               two-letter station, case sensitive, e.g. Ht')
+        print('               fmout-gps')
+        print('               Used')
+        print('         Additional columns ignored.')
+        print('     output, unless -a specified:')
+        print('         one line per station:')
+        print('               station')
+        print('               peculiar offset')
+        print('               difference from historical')
+        print('               "x" excluded or " " included')
+        print('               residual to fit for Diff_mean')
+        print('               Normalized residual for std')
+        print('               Normalized residual for historical RMS')
+        print('               station\'s historical offset')
+        print('               station\'s historical RMS')
+        print('               number of data points in history')
+        print('        two lines: explanation')
+        print('        one line: peculiar offsets version')
+        print('        one line: summary')
+        print('               number of stations included')
+        print('               total number of stations')
+        print('               average offset (Diff_mean)')
+        print('               std')
+        print('     output, with -a specified:')
+        print('         one line per station:')
+        print('               station')
+        print('               Use flag')
+        print('                 i=included')
+        print('                 x=excluded')
+        print('                 n=new')
+        print('               Adjusted peculiar offset')
+        print('               File name (all the same)')
+        print(' ')
+        print('Options:')
+        print(' -a   print adjusted peculiar offsets')
+        print(' -f   sub 8 us from Ft fmout for 512 Mbps')
+        print(' -h   this text')
+        print(' -v   print version number')
+        print(' -x   stations to exclude')
+        print('        list of two letter codes, colon separated, case sensitive')
+        print(' -z   accept zero values')
         sys.exit(0)
     elif opt == '-a':
         adjusted = True
     elif opt == '-f':
         ft_sub_8 = True
     elif opt == '-v':
-        sys.exit('[Version 8.05]')
+        sys.exit('[Version 8.06]')
     elif opt == '-x':
         exclude=arg.split(':')
     elif opt == '-z':
@@ -123,14 +138,8 @@ for opt,arg in options:
 
 df=pd.read_table(io.StringIO(s),sep='\s+',index_col=0,names=['Station','n','offset','rms'])
 #
-if not remainder:
-    print 'enter table'
-    indf=pd.read_table(sys.stdin,sep='\s+',index_col=0,names=['Station','gps','used','rate','comments','x1'])
-    print 'Input from stdin'
-else:
-    indf=pd.read_table(remainder[0],sep='\s+',index_col=0,names=['Station','gps','used','rate'])
-#    indf=pd.read_table(remainder[0],sep='\s+',index_col=0,names=['Station','gps','used','rate','comments'])
-    print 'Input File '+remainder[0] 
+indf=pd.read_table(remainder[0],sep='\s+',index_col=0,names=['Station','gps','used'],usecols=[0,1,2])
+print('Input File '+remainder[0]) 
 #
 diff={}
 use=np.array([])
@@ -139,29 +148,29 @@ for index in list:
     try:
         gps=float(indf['gps'][index])
         if index == 'Ft' and ft_sub_8:
-            indf['gps'][index]=float(indf['gps'][index])-8
+#            indf['gps'][index]=float(indf['gps'][index])-8
             gps=gps-8
-            print ' -8 us added to fmout value for Ft'
+            print(' -8 us added to fmout value for Ft')
 #
         try:
             used=float(indf['used'][index])
         except:
-            print '{:<7}'.format(index)," Can't decode Used"
+            print('{:<7}'.format(index)," Can't decode Used")
             continue
     except:
-        print '{:<7}'.format(index)," Can't decode fmout"
+        print('{:<7}'.format(index)," Can't decode fmout")
         continue
     if used == 0 and not acc_zeros:
-        print '{:<7}'.format(index)," Used value is zero"
+        print('{:<7}'.format(index)," Used value is zero")
         continue
     if gps == 0 and not acc_zeros:
-        print '{:<7}'.format(index)," fmout value is zero"
+        print('{:<7}'.format(index)," fmout value is zero")
         continue
     pec=used-gps
     try:
         diff[index]=df['offset'][index]-pec
     except KeyError:
-        print '{:<7}'.format(index), " No historical peculiar offset"
+        print('{:<7}'.format(index), " No historical peculiar offset")
         continue
     if index in exclude:
         continue
@@ -170,13 +179,15 @@ for index in list:
 avg=np.mean(use)
 rms=np.std(use)
 if not adjusted:
-    print 'Station Peculiar   Diff  X Residual     NR     NRH  Historical     RMS  count'
+    print('Station Peculiar   Diff  X Residual     NR     NRH  Historical     RMS  count')
 else:
-    print 'Station X Adjusted Input'
+    print('Station X Adjusted Input')
 #
 for index in list:
     try:
         gps=float(indf['gps'][index])
+        if index == 'Ft' and ft_sub_8:
+            gps=gps-8
         try:
             used=float(indf['used'][index])
         except:
@@ -203,28 +214,29 @@ for index in list:
         else:
             no='n'
 #
-    print '{:<2}'.format(index),
+    print('{:<2}'.format(index), end=' ')
     if not adjusted:
-        print '{:13.4f}'.format(pec),
-        print '{:7.4f}'.format(diff[index]),
-    print '{:.1}'.format(no),
+        print('{:13.4f}'.format(pec), end=' ')
+        print('{:7.4f}'.format(diff[index]), end=' ')
+    print('{:.1}'.format(no), end=' ')
     if not adjusted:
-        print '{:7.4f}'.format(diff[index]-avg),
-        print '{:7.1f}'.format((diff[index]-avg)/rms),
-        print '{:7.1f}'.format((diff[index]-avg)/df['rms'][index]),
-        print '{:10.4f}'.format(df['offset'][index]),
-        print '{:9.4f}'.format(df['rms'][index]),
-        print '{:5.0f}'.format(df['n'][index])
+        print('{:7.4f}'.format(diff[index]-avg), end=' ')
+        print('{:7.1f}'.format((diff[index]-avg)/rms), end=' ')
+        print('{:7.1f}'.format((diff[index]-avg)/df['rms'][index]), end=' ')
+        print('{:10.4f}'.format(df['offset'][index]), end=' ')
+        print('{:9.4f}'.format(df['rms'][index]), end=' ')
+        print('{:5.0f}'.format(df['n'][index]))
     else:
         if len(use) != 0:
-            print '{:8.4f}'.format(pec+avg),
+            print('{:8.4f}'.format(pec+avg), end=' ')
         else:
-            print '{:8.4f}'.format(pec),
-        print '{:<12}'.format(remainder[0])
+            print('{:8.4f}'.format(pec), end=' ')
+        print('{:<12}'.format(remainder[0]))
 if not adjusted:
-    print 'Diff: amount to add to Used to agree with historical peculiar offsets'
-    print 'X: deleted flag, Residual: Diff-Diff_mean, NR=Residual/std, NRH= Diff/RMS'
-    print 'Historical peculiar offsets:',peculiar_version
-    print '{:d}/{:d}'.format(len(use),len(diff.keys())),
-    print '   Diff_mean ','{:7.4f}'.format(avg),
-    print '   std ','{:7.4f}'.format(rms)
+    print('Diff: amount to add to Used to agree with historical peculiar offsets')
+    print('X: deleted flag, Residual: Diff-Diff_mean, NR=Residual/std, NRH= Diff/RMS')
+    print('Historical peculiar offsets:',peculiar_version)
+    print('{:d}/{:d}'.format(len(use),len(diff.keys())), end=' ')
+    print('   Diff_mean ','{:7.4f}'.format(avg), end=' ')
+    print('   std ','{:7.4f}'.format(rms))
+
