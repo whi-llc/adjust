@@ -85,7 +85,7 @@ for opt,arg in options:
         print('               two-letter station, case sensitive, e.g. Ht')
         print('               fmout-gps')
         print('               Used')
-        print('         Additional columns ignored.')
+        print('               Additional columns ignored.')
         print('     output, unless -a specified:')
         print('         one line per station:')
         print('               station')
@@ -129,16 +129,16 @@ for opt,arg in options:
     elif opt == '-f':
         ft_sub_8 = True
     elif opt == '-v':
-        sys.exit('[Version 8.06]')
+        sys.exit('[Version 8.07]')
     elif opt == '-x':
         exclude=arg.split(':')
     elif opt == '-z':
         acc_zeros = True
 
 
-df=pd.read_table(io.StringIO(s),sep='\s+',index_col=0,names=['Station','n','offset','rms'])
+df=pd.read_csv(io.StringIO(s),sep='\s+',index_col=0,names=['Station','n','offset','rms'])
 #
-indf=pd.read_table(remainder[0],sep='\s+',index_col=0,names=['Station','gps','used'],usecols=[0,1,2])
+indf=pd.read_csv(remainder[0],sep='\s+',index_col=0,names=['Station','gps','used'],usecols=[0,1,2])
 print('Input File '+remainder[0]) 
 #
 diff={}
