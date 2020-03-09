@@ -129,7 +129,7 @@ for opt,arg in options:
     elif opt == '-f':
         ft_sub_8 = True
     elif opt == '-v':
-        sys.exit('[Version 8.07]')
+        sys.exit('[Version 8.1]')
     elif opt == '-x':
         exclude=arg.split(':')
     elif opt == '-z':
@@ -181,7 +181,7 @@ rms=np.std(use)
 if not adjusted:
     print('Station Peculiar   Diff  X Residual     NR     NRH  Historical     RMS  count')
 else:
-    print('Station X Adjusted Input')
+    print('Station X fmout Adjusted Input')
 #
 for index in list:
     try:
@@ -221,15 +221,20 @@ for index in list:
     print('{:.1}'.format(no), end=' ')
     if not adjusted:
         print('{:7.4f}'.format(diff[index]-avg), end=' ')
-        print('{:7.1f}'.format((diff[index]-avg)/rms), end=' ')
+        if rms < 0.000095:
+            print('{:7.1f}'.format(np.nan), end=' ')
+        else:
+            print('{:7.1f}'.format((diff[index]-avg)/rms), end=' ')
         print('{:7.1f}'.format((diff[index]-avg)/df['rms'][index]), end=' ')
         print('{:10.4f}'.format(df['offset'][index]), end=' ')
         print('{:9.4f}'.format(df['rms'][index]), end=' ')
         print('{:5.0f}'.format(df['n'][index]))
     else:
         if len(use) != 0:
+            print('{:9.4f}'.format(gps), end=' ')
             print('{:8.4f}'.format(pec+avg), end=' ')
         else:
+            print('{:9.4f}'.format(gps), end=' ')
             print('{:8.4f}'.format(pec), end=' ')
         print('{:<12}'.format(remainder[0]))
 if not adjusted:
