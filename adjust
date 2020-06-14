@@ -37,7 +37,7 @@ if len(sys.argv)==1:
 try:
     options, remainder = getopt.getopt(
     sys.argv[1:],
-    'afhvx:z`')
+    'abfhvx:z`')
 
 except getopt.GetoptError as err:
     print('ERROR:', err)
@@ -48,6 +48,7 @@ if len(remainder) > 1:
     sys.exit(1)
 
 adjusted = False
+broadband = False
 ft_sub_8 = False
 exclude = []
 acc_zeros = False
@@ -55,7 +56,7 @@ acc_zeros = False
 #start
 #peculiar_version='v7_2018/04/08'
 #updated Ny with data r4836-r4845
-peculiar_version='v8.0_2018/06/24'
+peculiar_version='v8.0_weh_2018/06/24'
 #
 s='''
 Bd  4   217.277 0.006
@@ -74,6 +75,18 @@ Ww  5   1.974   0.026
 Wz  12  2.630   0.000
 Yg  13  2.278   0.021
 Zc  3   217.047 0.012
+'''
+b_peculiar_version='b1.0_bec_2020/06/11'
+b='''
+Wf  35  1.169  0.030
+Gs  35  0.602  0.005
+K2  34  0.414  0.046
+Mg   9  0.174  0.012
+Is   7  1.255  0.011
+Ws  35  1.717  0.046
+Yj  34 -0.038  0.098
+Oe  37  6.228  0.047
+Ow  23  6.188  0.038
 '''
 for opt,arg in options:
     if opt == '-h':
@@ -117,6 +130,7 @@ for opt,arg in options:
         print(' ')
         print('Options:')
         print(' -a   print adjusted peculiar offsets')
+        print(' -b   use broadband peculiar offsets')
         print(' -f   sub 8 us from Ft fmout for 512 Mbps')
         print(' -h   this text')
         print(' -v   print version number')
@@ -126,17 +140,21 @@ for opt,arg in options:
         sys.exit(0)
     elif opt == '-a':
         adjusted = True
+    elif opt == '-b':
+        broadband = True
     elif opt == '-f':
         ft_sub_8 = True
     elif opt == '-v':
-        sys.exit('[Version 8.1]')
+        sys.exit('[Version 8.2]')
     elif opt == '-x':
         exclude=arg.split(':')
     elif opt == '-z':
         acc_zeros = True
 
-
-df=pd.read_csv(io.StringIO(s),sep='\s+',index_col=0,names=['Station','n','offset','rms'])
+if broadband:
+    df=pd.read_csv(io.StringIO(b),sep='\s+',index_col=0,names=['Station','n','offset','rms'])
+else:
+    df=pd.read_csv(io.StringIO(s),sep='\s+',index_col=0,names=['Station','n','offset','rms'])
 #
 indf=pd.read_csv(remainder[0],sep='\s+',index_col=0,names=['Station','gps','used'],usecols=[0,1,2])
 print('Input File '+remainder[0]) 
@@ -239,8 +257,11 @@ for index in list:
         print('{:<12}'.format(remainder[0]))
 if not adjusted:
     print('Diff: amount to add to Used to agree with historical peculiar offsets')
-    print('X: deleted flag, Residual: Diff-Diff_mean, NR=Residual/std, NRH= Diff/RMS')
-    print('Historical peculiar offsets:',peculiar_version)
+    print('X: deleted flag, Residual: Diff-Diff_mean, NR=Residual/std, NRH=Residual/RMS')
+    if broadband:
+        print('Using broadband historical peculiar offsets:',b_peculiar_version)
+    else:
+        print('Using S/X historical peculiar offsets:',peculiar_version)
     print('{:d}/{:d}'.format(len(use),len(diff.keys())), end=' ')
     print('   Diff_mean ','{:7.4f}'.format(avg), end=' ')
     print('   std ','{:7.4f}'.format(rms))
