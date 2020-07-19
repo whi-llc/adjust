@@ -1,0 +1,66 @@
+= adjust: Adjust VLBI clocks for correlation
+E. Himwich, B. Corey, M. Titus
+Version 0.1 - July 2020
+
+== Installation
+
+. Requires pip3 (alternatively instead of the `bash install` command, replace the _shebang_ line in `adjust.py` with what your system needs):
+
+    git clone https://github.com/whi-llc/adjust
+    cd adjust
+    bash install
+
+. Add the directory where it was installed to your `PATH` variable
+
+== DRAFT:
+
+=== Files
+
+All data files are in the `data/` sub-directory
+
+. File types
++
+Files `+++*++++++_+++po+++_++++++*+++.dat` are peculiar offset (PO) data
++
+Files `+++*++++++_+++sd+++_++++++*+++.dat` are sampler delay (SD) data
++
+Other files are other information and plots.
+
+. Version numbers are of form `vS.P` where:
+
+.. `S` is the sampler delay (SD) version
+.. `P` is the peculiar offset (PO) version
+..  PO and SD files are related by the `S` value:
+
+. `bb` files are for broadband (VGOS)
+
+
+.. SD files:
++
+`bb+++_+++sd+++_+++_v_.dat`, where `v` is of the form `vS.
++
+.. PO files:
++
+`bb_po_v.dat`, where `v` is of the form `vS.P`, `vS.P` is the `P`-the POs for `S`-th SD
+
+. `sx` files are S/X
++
+.. PO files:
++
+`sx_po_v.dat`, where `v` is of the form `vN`
+
+. The symbolic links: `bb_po.dat`, `bb_sd.dat`, and `sx_po.dat` point to the current versions.
+
+=== Plans:
+
+. Modify adjust to read the PO data from the linked file in `data/`.
+. Add `-d` option to select a specific PO version
+. Add `-u` option to adjust to print new final values based on adjustment
+
+=== Longer term possibilities:
+
+. Modify `-u` option to print final values as `clock_early` statements using
+   `clock_early` statements as input.
+. Modify input to read `fmout-gps` values from `clock_early` statements (extension to VEX)
+. Add option to apply a fixed offset final values (adjusted values as well?)
+. Change PO files to use `.py` instead of `.dat` since they are Python code.
