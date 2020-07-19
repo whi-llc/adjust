@@ -1,4 +1,5 @@
 b_peculiar_version='b1.0_bec_2020/06/11'
+# through vo0051, "mean" value is initial
 b='''
 Wf  35  1.169  0.030
 Gs  35  0.602  0.005
