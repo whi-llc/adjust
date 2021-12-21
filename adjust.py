@@ -1,163 +1,86 @@
 #!/usr/bin/env python3
-#
-# Copyright (c) 2020 WHI LLC
-#
-# adjust: Adjust clock models for VLBI data correlation.
-# (see http://github.com/whi-llc/adjust).
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
-import os
-import sys
+'''
+Copyright (c) 2020 WHI LLC
+
+adjust: Adjust clock models for VLBI data correlation.
+(see http://github.com/whi-llc/adjust).
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/>.
+'''
+
+import os, sys, io, argparse
 import getopt
-import re
 import numpy as np
-import time
-import math
-import warnings
-import io
 import pandas as pd
 
 np.seterr(divide='ignore')
-
-if len(sys.argv)==1:
-    sys.exit('try '+os.path.splitext(os.path.basename(__file__))[0]+' -h')
-
-try:
-    options, remainder = getopt.getopt(
-    sys.argv[1:],
-    'abfhvx:z`')
-
-except getopt.GetoptError as err:
-    print('ERROR:', err)
-    sys.exit(1)
-
-if len(remainder) > 1:
-    print('ERROR: only one file argument allowed.')
-    sys.exit(1)
+path_to_script = os.path.dirname(os.path.abspath(__file__))
+default_offset_file = os.path.join(
+    path_to_script, 'data/sx_po.dat'
+)
 
 adjusted = False
-broadband = False
 ft_sub_8 = False
 exclude = []
 acc_zeros = False
-#
-#start
-#peculiar_version='v7_2018/04/08'
-#updated Ny with data r4836-r4845
-peculiar_version='v8.0_weh_2018/06/24'
-#
-s='''
-Bd  4   217.277 0.006
-Ft  8   0.238   0.015
-Ho  3   0.377   0.057
-Ht  13  2.943   0.021
-Is  9   0.507   0.012
-Ke  10  2.006   0.024
-Kk  8   0.459   0.012
-Ma  6   0.638   0.015
-Ny  21  2.308   0.010
-On  5   1.866   0.024
-Sh  7   9.986   0.013
-Wn  6   2.330   0.009
-Ww  5   1.974   0.026
-Wz  12  2.630   0.000
-Yg  13  2.278   0.021
-Zc  3   217.047 0.012
-'''
-b_peculiar_version='b1.0_bec_2020/06/11'
-b='''
-Wf  35  1.169  0.030
-Gs  35  0.602  0.005
-K2  34  0.414  0.046
-Mg   9  0.174  0.012
-Is   7  1.255  0.011
-Ws  35  1.717  0.046
-Yj  34 -0.038  0.098
-Oe  37  6.228  0.047
-Ow  23  6.188  0.038
-'''
-for opt,arg in options:
-    if opt == '-h':
-        print('Usage: '+sys.argv[0]+' -afhvx: file')
-        print('  finds average offset to apply to correlator \'Used\' clocks')
-        print('  after finding average offset, use -a to print adjusted offsets')
-        print('     file:')
-        print('         one line per station (three fields minimum, blank delimited):')
-        print('               two-letter station, case sensitive, e.g. Ht')
-        print('               fmout-gps')
-        print('               Used')
-        print('               Additional columns ignored.')
-        print('     output, unless -a specified:')
-        print('         one line per station:')
-        print('               station')
-        print('               peculiar offset')
-        print('               difference from historical')
-        print('               "x" excluded or " " included')
-        print('               residual to fit for Diff_mean')
-        print('               Normalized residual for std')
-        print('               Normalized residual for historical RMS')
-        print('               station\'s historical offset')
-        print('               station\'s historical RMS')
-        print('               number of data points in history')
-        print('        two lines: explanation')
-        print('        one line: peculiar offsets version')
-        print('        one line: summary')
-        print('               number of stations included')
-        print('               total number of stations')
-        print('               average offset (Diff_mean)')
-        print('               std')
-        print('     output, with -a specified:')
-        print('         one line per station:')
-        print('               station')
-        print('               Use flag')
-        print('                 i=included')
-        print('                 x=excluded')
-        print('                 n=new')
-        print('               Adjusted peculiar offset')
-        print('               File name (all the same)')
-        print(' ')
-        print('Options:')
-        print(' -a   print adjusted peculiar offsets')
-        print(' -b   use broadband peculiar offsets')
-        print(' -f   sub 8 us from Ft fmout for 512 Mbps')
-        print(' -h   this text')
-        print(' -v   print version number')
-        print(' -x   stations to exclude')
-        print('        list of two letter codes, colon separated, case sensitive')
-        print(' -z   accept zero values')
-        sys.exit(0)
-    elif opt == '-a':
-        adjusted = True
-    elif opt == '-b':
-        broadband = True
-    elif opt == '-f':
-        ft_sub_8 = True
-    elif opt == '-v':
-        sys.exit('[Version 8.2]')
-    elif opt == '-x':
-        exclude=arg.split(':')
-    elif opt == '-z':
-        acc_zeros = True
 
-if broadband:
-    df=pd.read_csv(io.StringIO(b),sep='\s+',index_col=0,names=['Station','n','offset','rms'])
-else:
-    df=pd.read_csv(io.StringIO(s),sep='\s+',index_col=0,names=['Station','n','offset','rms'])
+args = argparse.ArgumentParser(
+    prog='adjust', 
+    description=('finds average offset to apply to correlator \'Used\' '
+    'clocks after finding average offset, use -a to print adjusted offsets')
+)
+args.add_argument(
+    'clocks', help='file with station clocks in correlator report format'
+)
+args.add_argument(
+    '-a', '--adjust', action='store_true', 
+    help='print adjusted peculiar offsets'
+)
+args.add_argument(
+    '-p', '--peculiar-offsets', help='file with peculiar offsets'
+)
+args.add_argument(
+    '-f', '--ft', action='store_true',
+    help='sub 8 us from Ft fmout for 512 Mbps'
+)
+args.add_argument(
+    '-x', '--exclude', nargs='+',
+    help='list of two-letter stations to exclude'
+)
+args.add_argument(
+    '-z', '--use-zeroes', action='store_true',
+    help='accept zero values'
+)
+args.set_defaults(
+    adjust=False,
+    peculiar_offsets=default_offset_file,
+    ft=False,
+    exclude=[],
+    use_zeroes=False
+)
+a = args.parse_args()
+
+adjust = a.adjust
+ft_sub_8 = a.ft
+exclude = a.exclude
+acc_zeros = a.use_zeroes
+
+df=pd.read_csv(a.peculiar_offsets,sep='\s+',index_col=0,names=['Station','n','offset','rms'], comment='#')
+
 #
-indf=pd.read_csv(remainder[0],sep='\s+',index_col=0,names=['Station','gps','used'],usecols=[0,1,2])
-print('Input File '+remainder[0]) 
+indf=pd.read_csv(a.clocks,sep='\s+',index_col=0,names=['Station','gps','used'],usecols=[0,1,2], comment='#')
+print('Input File ' + a.clocks)
 #
 diff={}
 use=np.array([])
@@ -190,7 +113,7 @@ for index in list:
     except KeyError:
         print('{:<7}'.format(index), " No historical peculiar offset")
         continue
-    if index in exclude:
+    if index.lower() in [x.lower() for x in exclude]:
         continue
     else:
         use=np.append(use,diff[index])
@@ -218,7 +141,7 @@ for index in list:
         continue
     pec=used-gps
 # 
-    if index in exclude:
+    if index.lower() in [x.lower() for x in exclude]:
         no='x'
     elif adjusted:
         no='i'
@@ -258,10 +181,7 @@ for index in list:
 if not adjusted:
     print('Diff: amount to add to Used to agree with historical peculiar offsets')
     print('X: deleted flag, Residual: Diff-Diff_mean, NR=Residual/std, NRH=Residual/RMS')
-    if broadband:
-        print('Using broadband historical peculiar offsets:',b_peculiar_version)
-    else:
-        print('Using S/X historical peculiar offsets:',peculiar_version)
+    print('Using historical peculiar offsets from: ', a.peculiar_offsets)
     print('{:d}/{:d}'.format(len(use),len(diff.keys())), end=' ')
     print('   Diff_mean ','{:7.4f}'.format(avg), end=' ')
     print('   std ','{:7.4f}'.format(rms))
