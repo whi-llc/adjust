@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-Copyright (c) 2020 WHI LLC
+Copyright (c) 2020, 2022 WHI LLC
 
 adjust: Adjust clock models for VLBI data correlation.
 (see http://github.com/whi-llc/adjust).
