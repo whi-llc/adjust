@@ -1,6 +1,4 @@
-b_peculiar_version='b1.0_bec_2020/06/11'
-# through vo0051, "mean" value is initial
-b='''
+# station  n.points  offset  stdev
 Wf  35  1.169  0.030
 Gs  35  0.602  0.005
 K2  34  0.414  0.046
@@ -10,4 +8,3 @@ Ws  35  1.717  0.046
 Yj  34 -0.038  0.098
 Oe  37  6.228  0.047
 Ow  23  6.188  0.038
-'''
